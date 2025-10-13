@@ -7,14 +7,14 @@
 CRTProductTree build_product_tree(const std::vector<u32>& m) {
     CRTProductTree T;
     T.levels.clear();
-    
+    //base level
     std::vector<cpp_int> level0;
     level0.reserve(m.size());
     for (u32 mi : m) {
         level0.emplace_back(cpp_int(mi));
     }
     T.levels.push_back(std::move(level0));
-
+    //build upper levels
     while (T.levels.back().size() > 1) {
         const auto &cur = T.levels.back();
         std::vector<cpp_int> nxt;
@@ -24,6 +24,7 @@ CRTProductTree build_product_tree(const std::vector<u32>& m) {
             if (i + 1 < cur.size()) {
                 nxt.push_back(cur[i] * cur[i + 1]);
             } else {
+                //carry the last node up if its an odd number of nodes
                 nxt.push_back(cur[i]);
             }
         }
@@ -42,7 +43,7 @@ void remainder_tree_down(const CRTProductTree &T, const cpp_int &N,
     
     std::vector<std::vector<cpp_int>> rems(L);
     rems[L - 1].resize(1);
-    rems[L - 1][0] = N % T.levels[L - 1][0];
+    rems[L - 1][0] = N % T.levels[L - 1][0]; //top of the tree
     
     for (size_t level = L - 1; level > 0; --level) {
         const auto &cur_products = T.levels[level - 1];
@@ -53,10 +54,11 @@ void remainder_tree_down(const CRTProductTree &T, const cpp_int &N,
         size_t idx_child = 0;
         for (size_t i = 0; i < rems[level].size(); ++i) {
             const cpp_int &R = parent_rems[i];
+            //left child
             const cpp_int &Lprod = cur_products[idx_child];
             cur_rems[idx_child] = R % Lprod;
             ++idx_child;
-            
+            //right child
             if (idx_child < cur_products.size()) {
                 const cpp_int &Rprod = cur_products[idx_child];
                 cur_rems[idx_child] = R % Rprod;
@@ -64,6 +66,7 @@ void remainder_tree_down(const CRTProductTree &T, const cpp_int &N,
             }
         }
     }
+    //final remainders
     leaf_rems = std::move(rems[0]);
 }
 
@@ -76,7 +79,7 @@ std::vector<u32> choose_moduli_dynamic(const std::vector<u32>& primes,
     std::vector<u32> m;
     m.reserve(128);
     double acc_bits = 0.0;
-    
+    //add primes from the end till it reaches the bit length
     for (size_t idx = primes.size(); idx-- > 0; ) {
         u32 p = primes[idx];
         acc_bits += std::log2((double)p);
@@ -108,7 +111,7 @@ std::vector<u64> garner_from_residues(const std::vector<u64>& r,
 
     std::vector<u64> c(k);
     c[0] = r[0] % m[0];
-
+    //compute coefficients with modular eqauations 
     for (size_t i = 1; i < k; ++i) {
         u64 sum = c[0] % m[i];
         u64 prod = 1;
@@ -120,7 +123,7 @@ std::vector<u64> garner_from_residues(const std::vector<u64>& r,
                             (__uint128_t)prod) % (__uint128_t)m[i]);
             sum = (sum + term) % m[i];
         }
-
+        //difference between current residue and partial reconstruction
         u64 diff = (r[i] % m[i] >= sum) ? 
                    (r[i] % m[i] - sum) : 
                    (r[i] % m[i] + m[i] - sum);
