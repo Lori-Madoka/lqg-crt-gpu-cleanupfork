@@ -50,11 +50,11 @@ void check_gpu_capability() {
 }
 
 struct SetupData {
-    std::vector<u32> m;
-    std::vector<u32> r;
-    std::vector<u32> c32;
-    int k_used;
-    double choose_ms;
+    std::vector<u32> m; //moduli 
+    std::vector<u32> r; //remainders N mod m[i]
+    std::vector<u32> c32; //garner coefficients
+    int k_used; //number of moculi used
+    double choose_ms; //timings
     double residues_ms;
     double garner_ms;
 };
@@ -63,7 +63,7 @@ SetupData perform_crt_setup(const cpp_int& N, int k, int safety_bits) {
     SetupData setup;
     
     auto t_choose_start = now_tp();
-    if (k < 0) {
+    if (k < 0) { //auto grab enough moduli to use if the user didnt specify 
         int k_dyn = 0;
         setup.m = choose_moduli_dynamic(global_primes, N, safety_bits, &k_dyn);
         setup.k_used = k_dyn;
@@ -88,7 +88,7 @@ SetupData perform_crt_setup(const cpp_int& N, int k, int safety_bits) {
     }
 #else
     for (int i = 0; i < setup.k_used; ++i) {
-        setup.r[i] = (u32)(N % cpp_int(setup.m[i]));
+        setup.r[i] = (u32)(N % cpp_int(setup.m[i])); //compute remainders
     }
 #endif
     setup.residues_ms = ms_since(t_residues_start);
@@ -151,13 +151,13 @@ struct DeviceCRTData {
 };
 
 struct BenchmarkResults {
-    double pgen_ms;
+    double pgen_ms; //divisor generation
     double h2d_chunks_ms;
     double kernel_ms;
     double d2h_chunks_ms;
     double total_gpu_ms;
     double total_cpu_ms;
-    int total_mism;
+    int total_mism; //mismatches between cpu and gpu results
     
     BenchmarkResults() : pgen_ms(0), h2d_chunks_ms(0), kernel_ms(0), 
                         d2h_chunks_ms(0), total_gpu_ms(0), total_cpu_ms(0), 
@@ -169,7 +169,7 @@ void run_crt_benchmark_32(int M, const cpp_int& N,
                          const DeviceCRTData& crt_data, int k_used,
                          BenchmarkResults& results,
                          const u64 BASE_SEED_64, const u32 BASE_SEED_32) {
-    const int CHUNK_SIZE = 10000000;
+    const int CHUNK_SIZE = 10000000; //chunk size so we don't run out of memory
     
     // Allocate device buffers
     u32 *d_P = nullptr, *d_out = nullptr;
